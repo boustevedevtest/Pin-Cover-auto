@@ -169,6 +169,14 @@ app.post('/api/post-pin', async (req, res) => {
             finalAlt = seo.altText;
         }
 
+        let finalLink = websiteUrl.trim();
+        if (!finalLink || finalLink === 'https://' || finalLink === 'http://') {
+            finalLink = config.website_url || 'https://www.omarecipes.com';
+        }
+        if (!finalLink.startsWith('http')) {
+            finalLink = `https://${finalLink}`;
+        }
+
         console.log('📌 Posting to Pinterest Board:', config.pinterest_board);
         const result = await createPin({
             title: finalTitle,
@@ -176,7 +184,7 @@ app.post('/api/post-pin', async (req, res) => {
             hashtags: Array.isArray(finalHash) ? finalHash : finalHash.split(',').map(h => h.trim()),
             altText: finalAlt,
             imagePath: imagePath,
-            link: websiteUrl.startsWith('http') ? websiteUrl : `https://${websiteUrl}`
+            link: finalLink
         });
 
         res.json({ success: true, pinUrl: `https://pinterest.com/pin/${result.id}`, finalTitle });
