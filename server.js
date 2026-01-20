@@ -40,13 +40,30 @@ const setupEnv = (data) => {
 
 app.get('/auth/pinterest', (req, res) => {
     const { client_id, client_secret, sandbox } = req.query;
-    if (!client_id || !client_secret) return res.status(400).send('Missing App ID or Secret');
 
-    // On Vercel (serverless), process.env is not persistent between requests.
-    // We pass credentials through the 'state' parameter (Base64 encoded)
+    // Trim and validate inputs
+    const cleanId = (client_id || '').trim();
+    const cleanSecret = (client_secret || '').trim();
+
+    if (!cleanId || !cleanSecret) {
+        return res.status(400).send(`
+            <html>
+            <body style="font-family: sans-serif; text-align: center; padding: 50px; background: #fff5f5;">
+                <h2 style="color: #c53030;">❌ Configuration Error</h2>
+                <p>App ID or App Secret is missing. Please check your Settings.</p>
+                <button onclick="window.close()" style="margin-top: 20px; padding: 12px 24px; background: #4a5568; color: white; border: none; border-radius: 8px;">Close</button>
+            </body>
+            </html>
+        `);
+    }
+
+    console.log('🔑 Step 1: Initiating Pinterest OAuth...');
+    console.log('   App ID:', cleanId);
+    console.log('   Sandbox Mode:', sandbox === 'true');
+
     const stateData = Buffer.from(JSON.stringify({
-        client_id,
-        client_secret,
+        client_id: cleanId,
+        client_secret: cleanSecret,
         sandbox: sandbox === 'true'
     })).toString('base64');
 
@@ -54,25 +71,97 @@ app.get('/auth/pinterest', (req, res) => {
     const host = req.headers.host;
     const redirect_uri = `${protocol}://${host}/callback`;
 
+    console.log('   Redirect URI:', redirect_uri);
+
     const scopes = 'boards:read,boards:write,pins:read,pins:write,user_accounts:read';
-    const authUrl = `https://www.pinterest.com/oauth/?client_id=${client_id}&redirect_uri=${encodeURIComponent(redirect_uri)}&response_type=code&scope=${scopes}&state=${stateData}`;
+    const authUrl = `https://www.pinterest.com/oauth/?client_id=${cleanId}&redirect_uri=${encodeURIComponent(redirect_uri)}&response_type=code&scope=${scopes}&state=${stateData}`;
 
     res.redirect(authUrl);
 });
 
 app.get('/callback', async (req, res) => {
-    const { code, error, state } = req.query;
-    if (error) return res.status(400).send(`Pinterest Error: ${error}`);
-    if (!code) return res.status(400).send('No code received');
+    const { code, error, error_description, state } = req.query;
+
+    console.log('📥 Step 2: Callback received from Pinterest');
+    console.log('   Has code:', !!code);
+    console.log('   Has error:', !!error);
+
+    // Handle Pinterest authorization errors (Step 1 failures)
+    if (error) {
+        console.error('❌ Pinterest Authorization Error:', error, error_description);
+
+        let errorMsg = error_description || error;
+        let hints = [];
+
+        if (error === 'access_denied') {
+            hints.push('You clicked "Cancel" or "Deny" on Pinterest');
+            hints.push('Click Connect again and approve the permissions');
+        } else if (error === 'invalid_request' || error === 'invalid_client') {
+            hints.push('Your App ID is incorrect or your app is not active');
+            hints.push('Double-check your App ID in Pinterest Developer Portal');
+        } else if (error.includes('redirect_uri')) {
+            hints.push('Redirect URI mismatch!');
+            hints.push(`Add EXACTLY this URI to your Pinterest App: https://pin-cover-auto.vercel.app/callback`);
+        } else {
+            hints.push('Check your Pinterest App settings');
+            hints.push('Ensure your app is not in Draft mode');
+        }
+
+        return res.status(400).send(`
+            <html>
+            <body style="font-family: sans-serif; text-align: center; padding: 50px; background: #fff5f5;">
+                <h2 style="color: #c53030;">❌ Pinterest Authorization Failed (Step 1)</h2>
+                <div style="background: white; padding: 25px; border-radius: 12px; border: 2px solid #feb2b2; display: inline-block; text-align: left; max-width: 600px; margin: 20px;">
+                    <p><strong>Error:</strong> <code style="background: #f7fafc; padding: 5px; border-radius: 3px;">${error}</code></p>
+                    <p><strong>Description:</strong> ${errorMsg}</p>
+                    <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 15px 0;">
+                    <p style="color: #2c5282;"><strong>💡 What this means:</strong></p>
+                    <ul style="color: #4a5568; margin-left: 20px;">
+                        ${hints.map(h => `<li>${h}</li>`).join('')}
+                    </ul>
+                </div>
+                <br>
+                <button onclick="window.close()" style="padding: 12px 24px; background: #4a5568; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px;">Close & Fix Settings</button>
+            </body>
+            </html>
+        `);
+    }
+
+    if (!code) {
+        return res.status(400).send(`
+            <html>
+            <body style="font-family: sans-serif; text-align: center; padding: 50px; background: #fff5f5;">
+                <h2 style="color: #c53030;">❌ No Authorization Code</h2>
+                <p>Pinterest did not return an authorization code. Please try again.</p>
+                <button onclick="window.close()" style="padding: 12px 24px; background: #4a5568; color: white; border: none; border-radius: 8px;">Close</button>
+            </body>
+            </html>
+        `);
+    }
 
     let client_id, client_secret, sandbox;
     try {
+        if (!state) throw new Error('Missing state parameter');
         const decodedState = JSON.parse(Buffer.from(state, 'base64').toString());
         client_id = decodedState.client_id;
         client_secret = decodedState.client_secret;
         sandbox = decodedState.sandbox;
+
+        if (!client_id || !client_secret) {
+            throw new Error('State missing credentials');
+        }
     } catch (e) {
-        return res.status(400).send('Invalid state parameter');
+        console.error('❌ State decode error:', e.message);
+        return res.status(400).send(`
+            <html>
+            <body style="font-family: sans-serif; text-align: center; padding: 50px; background: #fff5f5;">
+                <h2 style="color: #c53030;">❌ Session Error</h2>
+                <p>Could not recover your app credentials. Please try connecting again.</p>
+                <p style="font-size: 0.9em; color: #718096;">Error: ${e.message}</p>
+                <button onclick="window.close()" style="padding: 12px 24px; background: #4a5568; color: white; border: none; border-radius: 8px;">Close</button>
+            </body>
+            </html>
+        `);
     }
 
     try {
