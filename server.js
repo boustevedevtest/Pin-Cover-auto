@@ -115,22 +115,41 @@ app.get('/callback', async (req, res) => {
             </html>
         `);
     } catch (error) {
-        const errorData = error.response?.data || error.message;
-        console.error('❌ OAuth Error:', errorData);
+        const errorData = error.response?.data || {};
+        const statusCode = error.response?.status || 500;
+        console.error('❌ OAuth Error Details:', JSON.stringify(errorData, null, 2));
+        console.error('   Status Code:', statusCode);
 
-        let message = JSON.stringify(errorData);
-        if (error.response?.status === 401) {
-            message = "Pinterest rejected your credentials (App ID or App Secret). Please check them in your Pinterest Developer portal.";
-        } else if (error.response?.status === 400 && message.includes('redirect_uri')) {
-            message = "Redirect URI mismatch. Ensure 'https://pin-cover-auto.vercel.app/callback' is registered in your Pinterest App settings.";
+        let detail = typeof errorData === 'string' ? errorData : (errorData.error_description || errorData.message || JSON.stringify(errorData));
+        let hints = [];
+
+        if (statusCode === 401 || detail.includes('invalid_client')) {
+            hints.push("Your App ID or App Secret is incorrect");
+            hints.push("Check your Pinterest Developer dashboard for the correct credentials");
+        }
+        if (detail.includes('redirect_uri')) {
+            hints.push("Redirect URI mismatch detected!");
+            hints.push("Add 'https://pin-cover-auto.vercel.app/callback' to your Pinterest App's Redirect URIs");
+        }
+        if (!hints.length) {
+            hints.push("Copy the error detail below and check Pinterest documentation");
         }
 
-        res.status(500).send(`
+        res.status(statusCode).send(`
             <html>
-            <body style="font-family: sans-serif; text-align: center; padding: 50px;">
-                <h2 style="color: #e53e3e;">❌ Authentication Failed</h2>
-                <p style="color: #4a5568;">${message}</p>
-                <button onclick="window.close()" style="margin-top: 20px; padding: 10px 20px; cursor: pointer;">Close Window</button>
+            <body style="font-family: sans-serif; text-align: center; padding: 50px; background: #fff5f5;">
+                <h2 style="color: #c53030;">❌ Pinterest Connection Failed</h2>
+                <div style="background: white; padding: 25px; border-radius: 12px; border: 2px solid #feb2b2; display: inline-block; text-align: left; max-width: 600px; margin: 20px;">
+                    <p><strong>Error Code:</strong> <span style="color: #e53e3e; font-family: monospace;">${statusCode}</span></p>
+                    <p><strong>Pinterest Says:</strong><br><code style="background: #f7fafc; padding: 10px; display: block; margin-top: 5px; border-radius: 5px; color: #2d3748; word-wrap: break-word;">${detail}</code></p>
+                    <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
+                    <p style="color: #2c5282;"><strong>💡 What to check:</strong></p>
+                    <ul style="color: #4a5568; margin-left: 20px;">
+                        ${hints.map(h => `<li>${h}</li>`).join('')}
+                    </ul>
+                </div>
+                <br>
+                <button onclick="window.close()" style="margin-top: 20px; padding: 12px 24px; cursor: pointer; background: #4a5568; color: white; border: none; border-radius: 8px; font-size: 16px;">Close & Retry</button>
             </body>
             </html>
         `);
