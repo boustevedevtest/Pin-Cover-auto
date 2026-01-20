@@ -49,7 +49,7 @@ app.get('/auth/pinterest', (req, res) => {
 
     const protocol = req.headers['x-forwarded-proto'] || 'http';
     const host = req.headers.host;
-    const redirect_uri = `${protocol}://${host}/callback${sandbox === 'true' ? '?sandbox=true' : ''}`;
+    const redirect_uri = `${protocol}://${host}/callback`;
 
     const scopes = 'boards:read,boards:write,pins:read,pins:write,user_accounts:read';
     const authUrl = `https://www.pinterest.com/oauth/?client_id=${client_id}&redirect_uri=${encodeURIComponent(redirect_uri)}&response_type=code&scope=${scopes}&state=${stateData}`;
@@ -78,7 +78,7 @@ app.get('/callback', async (req, res) => {
 
         const protocol = req.headers['x-forwarded-proto'] || 'http';
         const host = req.headers.host;
-        const redirect_uri = `${protocol}://${host}/callback${sandbox ? '?sandbox=true' : ''}`;
+        const redirect_uri = `${protocol}://${host}/callback`;
 
         const response = await axios.post('https://api.pinterest.com/v5/oauth/token',
             new URLSearchParams({
