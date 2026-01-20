@@ -419,6 +419,13 @@
                         <input type="text" id="seoHashtags" style="width: 100%;">
                     </div>
 
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label>Destination Link (URL)</label>
+                        <input type="text" id="seoLink"
+                            style="width: 100%; border: 2px solid #3182ce; background: #ebf8ff;"
+                            placeholder="https://omarecipes.com/recipe-name">
+                    </div>
+
                     <button id="postAutoBtn" class="btn-post-auto" style="width: 100%; margin: 0; padding: 18px;">
                         🚀 Post to Pinterest Now
                     </button>
@@ -742,6 +749,11 @@
                     seoTitleInput.value = result.seoContent.title;
                     seoDescInput.value = result.seoContent.description;
                     seoHashInput.value = result.seoContent.hashtags.join(', ');
+
+                    // Pre-fill the SEO link with the main website URL if empty
+                    const mainUrl = document.getElementById('websiteUrl').value;
+                    document.getElementById('seoLink').value = mainUrl.startsWith('http') ? mainUrl : `https://${mainUrl}`;
+
                     statusDiv.innerHTML = '✅ SEO content ready! You can edit it if you want.';
                     statusDiv.style.color = '#38a169';
                 }
@@ -775,6 +787,7 @@
             const title = document.getElementById('seoTitle').value;
             const description = document.getElementById('seoDescription').value;
             const hashtags = document.getElementById('seoHashtags').value;
+            const destinationLink = document.getElementById('seoLink').value;
             const websiteUrl = document.getElementById('websiteUrl').value;
 
             btn.disabled = true;
@@ -802,7 +815,7 @@
                         title,
                         description,
                         hashtags,
-                        websiteUrl,
+                        websiteUrl: destinationLink, // Use the specific link
                         config
                     })
                 });
