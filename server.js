@@ -117,7 +117,23 @@ app.get('/callback', async (req, res) => {
     } catch (error) {
         const errorData = error.response?.data || error.message;
         console.error('❌ OAuth Error:', errorData);
-        res.status(500).send(`Auth Error: ${JSON.stringify(errorData)}`);
+
+        let message = JSON.stringify(errorData);
+        if (error.response?.status === 401) {
+            message = "Pinterest rejected your credentials (App ID or App Secret). Please check them in your Pinterest Developer portal.";
+        } else if (error.response?.status === 400 && message.includes('redirect_uri')) {
+            message = "Redirect URI mismatch. Ensure 'https://pin-cover-auto.vercel.app/callback' is registered in your Pinterest App settings.";
+        }
+
+        res.status(500).send(`
+            <html>
+            <body style="font-family: sans-serif; text-align: center; padding: 50px;">
+                <h2 style="color: #e53e3e;">❌ Authentication Failed</h2>
+                <p style="color: #4a5568;">${message}</p>
+                <button onclick="window.close()" style="margin-top: 20px; padding: 10px 20px; cursor: pointer;">Close Window</button>
+            </body>
+            </html>
+        `);
     }
 });
 
@@ -135,7 +151,9 @@ app.get('/api/list-boards', async (req, res) => {
         });
         res.json({ success: true, boards: response.data.items });
     } catch (error) {
-        res.status(500).json({ success: false, error: error.response?.data || error.message });
+        const errData = error.response?.data || {};
+        const message = errData.message || (typeof errData === 'string' ? errData : JSON.stringify(errData)) || error.message;
+        res.status(500).json({ success: false, error: { message: message } });
     }
 });
 
