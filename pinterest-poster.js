@@ -285,8 +285,14 @@ export async function createPin(pinData) {
 
         return response.data;
     } catch (error) {
-        console.error('❌ Pinterest API error:', error.response?.data || error.message);
-        throw error;
+        const errData = error.response?.data || {};
+        console.error('❌ Pinterest API error:', JSON.stringify(errData, null, 2));
+
+        if (error.response?.status === 401) {
+            throw new Error('Authentication Failed: Your token is invalid or expired. Please Reconnect to Pinterest in Settings.');
+        }
+
+        throw new Error(errData.message || error.message);
     }
 }
 
