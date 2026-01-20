@@ -325,11 +325,83 @@
                 margin-left: 0;
             }
         }
+
+        /* Login Screen Styles */
+        #loginOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .login-box {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 40px;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            text-align: center;
+            width: 90%;
+            max-width: 400px;
+        }
+
+        .login-box h2 {
+            margin-bottom: 20px;
+            color: #2d3748;
+        }
+
+        .login-box input {
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 1.2rem;
+            text-align: center;
+        }
+
+        .login-box button {
+            width: 100%;
+            padding: 15px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .login-box button:hover {
+            background: #764ba2;
+        }
+
+        #mainContent {
+            display: none;
+        }
     </style>
 </head>
 
 <body>
-    <div class="container">
+    <!-- Password Protection -->
+    <div id="loginOverlay">
+        <div class="login-box">
+            <h2 style="color: #4b6f44;">🔒 Pin Poster Auto</h2>
+            <p style="margin-bottom: 20px; color: #718096;">Please enter your access code</p>
+            <input type="password" id="passCode" placeholder="Enter Code..." autofocus>
+            <button id="loginBtn">Unlock Platform</button>
+            <p id="loginError" style="color: #e53e3e; margin-top: 15px; display: none;">Invalid code. Try again.</p>
+        </div>
+    </div>
+
+    <div id="mainContent" class="container">
         <div class="header-actions">
             <div>
                 <h1>🎨 Pin Auto Pro</h1>
@@ -497,6 +569,38 @@
     </div>
 
     <script>
+        // Password Check Logic
+        const loginOverlay = document.getElementById('loginOverlay');
+        const mainContent = document.getElementById('mainContent');
+        const passCodeInput = document.getElementById('passCode');
+        const loginBtn = document.getElementById('loginBtn');
+        const loginError = document.getElementById('loginError');
+
+        function checkAuth() {
+            if (localStorage.getItem('app_authorized') === '1992') {
+                loginOverlay.style.display = 'none';
+                mainContent.style.display = 'block';
+            }
+        }
+
+        loginBtn.onclick = () => {
+            if (passCodeInput.value === '1992') {
+                localStorage.setItem('app_authorized', '1992');
+                loginOverlay.style.display = 'none';
+                mainContent.style.display = 'block';
+            } else {
+                loginError.style.display = 'block';
+                passCodeInput.value = '';
+                passCodeInput.focus();
+            }
+        };
+
+        passCodeInput.onkeypress = (e) => {
+            if (e.key === 'Enter') loginBtn.onclick();
+        };
+
+        checkAuth();
+
         const form = document.getElementById('posterForm');
         const generateBtn = document.getElementById('generateBtn');
         const loadingIndicator = document.getElementById('loadingIndicator');
@@ -981,6 +1085,7 @@
             }
         }
     </script>
+    </div> <!-- End mainContent -->
 </body>
 
 </html>
