@@ -25,6 +25,7 @@ const getConfig = () => ({
     pinterestAccessToken: process.env.PINTEREST_ACCESS_TOKEN,
     pinterestBoardId: process.env.PINTEREST_BOARD_ID,
     websiteUrl: process.env.WEBSITE_URL || 'www.omarecipes.com',
+    pinterestSandbox: process.env.PINTEREST_SANDBOX === 'true',
 
     // Design constants
     canvasWidth: 1000,
@@ -254,8 +255,10 @@ export async function createPin(pinData) {
         const imageBuffer = fs.readFileSync(imagePath);
         const base64Image = imageBuffer.toString('base64');
 
+        const baseUrl = config.pinterestSandbox ? 'https://api-sandbox.pinterest.com' : 'https://api.pinterest.com';
+
         const response = await axios.post(
-            'https://api.pinterest.com/v5/pins',
+            `${baseUrl}/v5/pins`,
             {
                 board_id: config.pinterestBoardId,
                 title: title,

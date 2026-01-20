@@ -30,6 +30,7 @@ const setupEnv = (data) => {
     if (data.openrouter_model) process.env.OPENROUTER_MODEL = data.openrouter_model;
     if (data.pinterest_app_id) process.env.PINTEREST_APP_ID = data.pinterest_app_id;
     if (data.pinterest_app_secret) process.env.PINTEREST_APP_SECRET = data.pinterest_app_secret;
+    if (data.pinterest_sandbox !== undefined) process.env.PINTEREST_SANDBOX = data.pinterest_sandbox;
 };
 
 // --- Pinterest OAuth Flow ---
@@ -43,7 +44,8 @@ app.get('/auth/pinterest', (req, res) => {
 
     const protocol = req.headers['x-forwarded-proto'] || 'http';
     const host = req.headers.host;
-    const redirect_uri = `${protocol}://${host}/callback`;
+    const sandbox = req.query.sandbox === 'true';
+    const redirect_uri = `${protocol}://${host}/callback${sandbox ? '?sandbox=true' : ''}`;
 
     const scopes = 'boards:read,boards:write,pins:read,pins:write,user_accounts:read';
     const authUrl = `https://www.pinterest.com/oauth/?client_id=${client_id}&redirect_uri=${encodeURIComponent(redirect_uri)}&response_type=code&scope=${scopes}`;
@@ -65,7 +67,8 @@ app.get('/callback', async (req, res) => {
 
         const protocol = req.headers['x-forwarded-proto'] || 'http';
         const host = req.headers.host;
-        const redirect_uri = `${protocol}://${host}/callback`;
+        const sandbox = req.query.sandbox === 'true';
+        const redirect_uri = `${protocol}://${host}/callback${sandbox ? '?sandbox=true' : ''}`;
 
         const response = await axios.post('https://api.pinterest.com/v5/oauth/token',
             new URLSearchParams({
@@ -108,7 +111,10 @@ app.get('/api/list-boards', async (req, res) => {
     if (!token) return res.status(400).json({ error: 'Missing token' });
 
     try {
-        const response = await axios.get('https://api.pinterest.com/v5/boards', {
+        const sandbox = req.query.sandbox === 'true' || process.env.PINTEREST_SANDBOX === 'true';
+        const baseUrl = sandbox ? 'https://api-sandbox.pinterest.com' : 'https://api.pinterest.com';
+
+        const response = await axios.get(`${baseUrl}/v5/boards`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         res.json({ success: true, boards: response.data.items });
