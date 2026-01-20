@@ -845,7 +845,11 @@
                 }
             } catch (error) {
                 statusDiv.style.color = '#e53e3e';
-                statusDiv.innerHTML = '❌ Error: ' + error.message;
+                let msg = error.message;
+                if (msg.includes('401') || msg.toLowerCase().includes('authentication') || msg.toLowerCase().includes('token')) {
+                    msg = '<b>Authentication Failed:</b> Your session might have expired or scopes are missing. <br>👉 Please go to <b>Settings ⚙️</b> and <b>Reconnect to Pinterest</b>.';
+                }
+                statusDiv.innerHTML = '❌ ' + msg;
                 btn.disabled = false;
                 btn.innerHTML = '🚀 Post to Pinterest Now';
                 console.error(error);
