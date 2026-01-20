@@ -181,8 +181,12 @@ app.post('/api/post-pin', async (req, res) => {
 
         res.json({ success: true, pinUrl: `https://pinterest.com/pin/${result.id}`, finalTitle });
     } catch (error) {
-        console.error('❌ Final Error:', error.message);
-        res.status(500).json({ success: false, error: error.message });
+        const errorData = error.response?.data || error.message;
+        console.error('❌ Detailed Error:', JSON.stringify(errorData, null, 2));
+        res.status(500).json({
+            success: false,
+            error: typeof errorData === 'object' ? (errorData.message || JSON.stringify(errorData)) : errorData
+        });
     }
 });
 
