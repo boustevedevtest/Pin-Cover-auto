@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pinterest Poster Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 1200px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        h1 {
+            color: #2d3748;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            font-weight: 800;
+        }
+
+        .subtitle {
+            color: #718096;
+            margin-bottom: 30px;
+            font-size: 1.1rem;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        label {
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input[type="text"],
+        input[type="file"] {
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus,
+        input[type="file"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 10px;
+            cursor: pointer;
+            text-align: center;
+            font-weight: 600;
+            transition: transform 0.2s ease;
+        }
+
+        .file-input-wrapper:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .file-input-wrapper input[type="file"] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .image-preview {
+            margin-top: 10px;
+            border-radius: 10px;
+            overflow: hidden;
+            max-height: 150px;
+        }
+
+        .image-preview img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+        }
+
+        .btn-generate {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 16px 32px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            width: 100%;
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-generate:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 35px rgba(102, 126, 234, 0.5);
+        }
+
+        .btn-generate:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .result-section {
+            margin-top: 40px;
+            padding-top: 40px;
+            border-top: 2px solid #e2e8f0;
+        }
+
+        .result-section h2 {
+            color: #2d3748;
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+        }
+
+        #canvas {
+            display: none;
+        }
+
+        #preview {
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+            display: block;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .download-section {
+            text-align: center;
+            margin-top: 30px;
+        }
+
+        .btn-download {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+            padding: 14px 28px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(72, 187, 120, 0.4);
+        }
+
+        .btn-download:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(72, 187, 120, 0.5);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .file-name {
+            margin-top: 8px;
+            font-size: 0.85rem;
+            color: #4a5568;
+            font-style: italic;
+        }
+
+        .header-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .btn-settings {
+            background: #f7fafc;
+            color: #4a5568;
+            border: 2px solid #e2e8f0;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-settings:hover {
+            background: #edf2f7;
+            border-color: #cbd5e0;
+        }
+
+        /* Settings Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            max-width: 600px;
+            width: 90%;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .modal-header h2 {
+            font-size: 1.5rem;
+            color: #2d3748;
+        }
+
+        .close-modal {
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #a0aec0;
+        }
+
+        .btn-post-auto {
+            background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+            color: white;
+            padding: 14px 28px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(229, 62, 62, 0.4);
+            margin-left: 15px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-post-auto:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(229, 62, 62, 0.5);
+        }
+
+        .btn-post-auto:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 768px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .download-section {
+                display: flex;
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .btn-post-auto {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header-actions">
+            <div>
+                <h1>🎨 Pin Auto Pro</h1>
+                <p class="subtitle" style="margin-bottom: 0;">Automate & Design Pinterest Posters</p>
+            </div>
+            <button class="btn-settings" id="openSettings">
+                ⚙️ Settings
+            </button>
+        </div>
+
+        <form id="posterForm">
+            <div class="form-grid">
+                <div class="form-group full-width">
+                    <label for="title">Title</label>
+                    <input type="text" id="title" placeholder="Enter your pin title..." required>
+                </div>
+
+                <div class="form-group full-width">
+                    <label for="websiteUrl">Website URL (saved automatically) 💾</label>
+                    <input type="text" id="websiteUrl" placeholder="www.omarecipes.com">
+                    <small style="color: #718096; margin-top: 5px;">This will be displayed below the title and saved for
+                        future use</small>
+                </div>
+
+                <div class="form-group">
+                    <label>Image 1 (Top Half)</label>
+                    <label for="image1" class="file-input-wrapper">
+                        📁 Choose Image 1
+                        <input type="file" id="image1" accept="image/*" required>
+                    </label>
+                    <div class="file-name" id="file1-name"></div>
+                    <div class="image-preview" id="preview1"></div>
+                </div>
+
+                <div class="form-group">
+                    <label>Image 2 (Bottom Half)</label>
+                    <label for="image2" class="file-input-wrapper">
+                        📁 Choose Image 2
+                        <input type="file" id="image2" accept="image/*" required>
+                    </label>
+                    <div class="file-name" id="file2-name"></div>
+                    <div class="image-preview" id="preview2"></div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-generate" id="generateBtn">
+                Generate Pinterest Poster
+            </button>
+        </form>
+
+        <div id="loadingIndicator" class="loading" style="display: none;">
+            ⏳ Generating your stunning poster...
+        </div>
+
+        <div id="resultSection" class="result-section" style="display: none;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+                <div>
+                    <h2>✨ Your Pinterest Poster</h2>
+                    <canvas id="canvas" width="1000" height="1500"></canvas>
+                    <img id="preview" alt="Generated Poster">
+                    <div class="download-section">
+                        <a id="downloadBtn" class="btn-download" download="pinterest-poster.jpg">
+                            ⬇️ Download JPG
+                        </a>
+                    </div>
+                </div>
+
+                <div id="seoPreviewSection"
+                    style="background: #f7fafc; padding: 25px; border-radius: 20px; border: 2px solid #e2e8f0;">
+                    <h2 style="font-size: 1.4rem;">🤖 AI SEO Content</h2>
+                    <p style="font-size: 0.9rem; color: #718096; margin-bottom: 20px;">Review and edit before posting
+                    </p>
+
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label>Pin Title</label>
+                        <input type="text" id="seoTitle" style="width: 100%;">
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 15px;">
+                        <label>Description</label>
+                        <textarea id="seoDescription"
+                            style="width: 100%; height: 120px; padding: 12px; border: 2px solid #e2e8f0; border-radius: 10px; font-family: inherit; resize: vertical;"></textarea>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label>Hashtags (comma separated)</label>
+                        <input type="text" id="seoHashtags" style="width: 100%;">
+                    </div>
+
+                    <button id="postAutoBtn" class="btn-post-auto" style="width: 100%; margin: 0; padding: 18px;">
+                        🚀 Post to Pinterest Now
+                    </button>
+
+                    <div id="postStatus" style="margin-top: 15px; font-weight: 600; text-align: center;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>⚙️ Configuration</h2>
+                <span class="close-modal" id="closeSettings">&times;</span>
+            </div>
+            <div class="form-grid" style="grid-template-columns: 1fr; gap: 20px;">
+                <div class="form-group">
+                    <label>OpenRouter API Key</label>
+                    <input type="password" id="openrouterKey" placeholder="sk-or-v1-...">
+                </div>
+                <div style="border: 1px solid #e2e8f0; padding: 15px; border-radius: 10px; background: #f7fafc;">
+                    <label style="color: #e53e3e;">🔑 Pinterest Login (Recommended)</label>
+                    <div class="form-group" style="margin-top: 10px;">
+                        <label>App ID</label>
+                        <input type="text" id="pinterestAppId" placeholder="1543552">
+                    </div>
+                    <div class="form-group" style="margin-top: 10px;">
+                        <label>App Secret</label>
+                        <input type="password" id="pinterestAppSecret" placeholder="••••••••">
+                    </div>
+                    <button id="connectPinterest" class="btn-download"
+                        style="width: 100%; margin-top: 15px; background: #e60023;">
+                        🔴 Connect to Pinterest
+                    </button>
+                    <div id="authStatus" style="font-size: 0.8rem; margin-top: 5px; text-align: center;"></div>
+                </div>
+                <div class="form-group">
+                    <label>Pinterest Access Token (Manual)</label>
+                    <input type="password" id="pinterestToken" placeholder="pina_...">
+                </div>
+                <div class="form-group">
+                    <label>Pinterest Board ID</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="pinterestBoard" placeholder="123456..." style="flex: 1;">
+                        <button id="btnLoadBoards" class="btn-settings" style="padding: 5px 15px; font-size: 0.8rem;">
+                            🔄 Load
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Default Website URL</label>
+                    <input type="text" id="defaultUrl" placeholder="www.omarecipes.com">
+                </div>
+                <div class="form-group">
+                    <label>AI Model</label>
+                    <input type="text" id="modelSelect" value="google/gemini-2.0-flash-001">
+                </div>
+                <button id="saveSettings" class="btn-generate">Save Configuration 💾</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('posterForm');
+        const generateBtn = document.getElementById('generateBtn');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const resultSection = document.getElementById('resultSection');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const preview = document.getElementById('preview');
+        const downloadBtn = document.getElementById('downloadBtn');
+
+        // Design constants
+        const CANVAS_WIDTH = 1000;
+        const CANVAS_HEIGHT = 1500;
+        const TITLE_COLOR = '#4B6F44';
+        const BANNER_COLOR = '#FFFFFF';
+        const BANNER_HEIGHT = 330;
+        const URL_COLOR = '#E07B39'; // Orange color for URL
+
+        // Load saved website URL from localStorage
+        const websiteUrlInput = document.getElementById('websiteUrl');
+        const defaultUrlInput = document.getElementById('defaultUrl');
+        const openrouterKeyInput = document.getElementById('openrouterKey');
+        const pinterestTokenInput = document.getElementById('pinterestToken');
+        const pinterestBoardInput = document.getElementById('pinterestBoard');
+        const modelSelectInput = document.getElementById('modelSelect');
+        const pinterestAppIdInput = document.getElementById('pinterestAppId');
+        const pinterestAppSecretInput = document.getElementById('pinterestAppSecret');
+
+        // Load settings from localStorage
+        function loadSettings() {
+            const savedUrl = localStorage.getItem('pinterestGeneratorUrl');
+            const savedDefaultUrl = localStorage.getItem('pinterestDefaultUrl');
+            const savedORKey = localStorage.getItem('openrouterKey');
+            const savedPToken = localStorage.getItem('pinterestToken');
+            const savedPBoard = localStorage.getItem('pinterestBoard');
+            const savedModel = localStorage.getItem('openrouterModel');
+            const savedAppId = localStorage.getItem('pinterestAppId');
+            const savedAppSecret = localStorage.getItem('pinterestAppSecret');
+
+            if (savedUrl) websiteUrlInput.value = savedUrl;
+            if (savedDefaultUrl) defaultUrlInput.value = savedDefaultUrl;
+            if (savedORKey) openrouterKeyInput.value = savedORKey;
+            if (savedPToken) pinterestTokenInput.value = savedPToken;
+            if (savedPBoard) pinterestBoardInput.value = savedPBoard;
+            if (savedModel) modelSelectInput.value = savedModel;
+            if (savedAppId) pinterestAppIdInput.value = savedAppId;
+            if (savedAppSecret) pinterestAppSecretInput.value = savedAppSecret;
+
+            // If website URL is empty but default exists, use default
+            if (!websiteUrlInput.value && savedDefaultUrl) {
+                websiteUrlInput.value = savedDefaultUrl;
+            }
+        }
+
+        loadSettings();
+
+        // Modal Logic
+        const modal = document.getElementById('settingsModal');
+        document.getElementById('openSettings').onclick = () => modal.style.display = 'flex';
+        document.getElementById('closeSettings').onclick = () => modal.style.display = 'none';
+        window.onclick = (e) => { if (e.target == modal) modal.style.display = 'none'; };
+
+        document.getElementById('saveSettings').onclick = () => {
+            localStorage.setItem('pinterestDefaultUrl', defaultUrlInput.value);
+            localStorage.setItem('openrouterKey', openrouterKeyInput.value);
+            localStorage.setItem('pinterestToken', pinterestTokenInput.value);
+            localStorage.setItem('pinterestBoard', pinterestBoardInput.value);
+            localStorage.setItem('openrouterModel', modelSelectInput.value);
+            localStorage.setItem('pinterestAppId', pinterestAppIdInput.value);
+            localStorage.setItem('pinterestAppSecret', pinterestAppSecretInput.value);
+            modal.style.display = 'none';
+            alert('Settings saved! 💾');
+        };
+
+        // Pinterest Auth Popup
+        document.getElementById('connectPinterest').onclick = () => {
+            const appId = pinterestAppIdInput.value;
+            const appSecret = pinterestAppSecretInput.value;
+
+            if (!appId || !appSecret) {
+                alert('Please enter your App ID and App Secret first!');
+                return;
+            }
+
+            // Save them
+            localStorage.setItem('pinterestAppId', appId);
+            localStorage.setItem('pinterestAppSecret', appSecret);
+
+            // Open auth window (Pass secret to server so it can exchange token)
+            const authUrl = `http://localhost:3000/auth/pinterest?client_id=${appId}&client_secret=${appSecret}`;
+            window.open(authUrl, 'Pinterest Auth', 'width=600,height=700');
+        };
+
+        // Listen for token from popup
+        window.addEventListener('message', (event) => {
+            if (event.data.type === 'PINTEREST_TOKEN') {
+                pinterestTokenInput.value = event.data.token;
+                localStorage.setItem('pinterestToken', event.data.token);
+                document.getElementById('authStatus').innerHTML = '✅ Connected successfully!';
+                document.getElementById('authStatus').style.color = '#38a169';
+
+                // Automatically try to load boards
+                loadPinterestBoards(event.data.token);
+
+                alert('Pinterest connected! Scopes: pins:write active ✅');
+            }
+        });
+
+        async function loadPinterestBoards(token) {
+            const btn = document.getElementById('btnLoadBoards');
+            if (btn) btn.innerHTML = '⏳...';
+
+            try {
+                const response = await fetch(`http://localhost:3000/api/list-boards?token=${token}`);
+                const result = await response.json();
+
+                if (result.success && result.boards.length > 0) {
+                    // For now just pick the first one if empty, or show a list
+                    if (!pinterestBoardInput.value) {
+                        pinterestBoardInput.value = result.boards[0].id;
+                        localStorage.setItem('pinterestBoard', result.boards[0].id);
+                    }
+                    console.log('Boards loaded:', result.boards);
+                    if (btn) btn.innerHTML = '✅ OK';
+                }
+            } catch (error) {
+                console.error('Error loading boards:', error);
+                if (btn) btn.innerHTML = '❌';
+            }
+        }
+
+        document.getElementById('btnLoadBoards').onclick = () => {
+            const token = localStorage.getItem('pinterestToken');
+            if (!token) return alert('Connect to Pinterest first!');
+            loadPinterestBoards(token);
+        };
+
+        // Save active URL
+        websiteUrlInput.addEventListener('input', function () {
+            localStorage.setItem('pinterestGeneratorUrl', this.value);
+        });
+
+        // Preview file selections
+        document.getElementById('image1').addEventListener('change', function (e) {
+            previewFile(e.target.files[0], 'preview1', 'file1-name');
+        });
+
+        document.getElementById('image2').addEventListener('change', function (e) {
+            previewFile(e.target.files[0], 'preview2', 'file2-name');
+        });
+
+        function previewFile(file, previewId, fileNameId) {
+            if (!file) return;
+
+            document.getElementById(fileNameId).textContent = file.name;
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const previewDiv = document.getElementById(previewId);
+                previewDiv.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const title = document.getElementById('title').value;
+            const websiteUrl = document.getElementById('websiteUrl').value;
+            const image1File = document.getElementById('image1').files[0];
+            const image2File = document.getElementById('image2').files[0];
+
+            if (!title || !image1File || !image2File) {
+                alert('Please fill in all fields');
+                return;
+            }
+
+            // Show loading
+            generateBtn.disabled = true;
+            loadingIndicator.style.display = 'block';
+            resultSection.style.display = 'none';
+
+            try {
+                await generatePoster(title, websiteUrl, image1File, image2File);
+
+                // Show result
+                loadingIndicator.style.display = 'none';
+                resultSection.style.display = 'block';
+
+                // Scroll to result
+                resultSection.scrollIntoView({ behavior: 'smooth' });
+            } catch (error) {
+                alert('Error generating poster: ' + error.message);
+                console.error(error);
+            } finally {
+                generateBtn.disabled = false;
+            }
+        });
+
+        async function generatePoster(title, websiteUrl, image1File, image2File) {
+            // Clear canvas
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+
+            // Load images
+            const img1 = await loadImage(image1File);
+            const img2 = await loadImage(image2File);
+
+            // Draw top image (0 to 750)
+            drawImageCropped(img1, 0, 0, CANVAS_WIDTH, 750);
+
+            // Draw bottom image (750 to 1500)
+            drawImageCropped(img2, 0, 750, CANVAS_WIDTH, 750);
+
+            // Draw banner
+            const bannerY = (CANVAS_HEIGHT - BANNER_HEIGHT) / 2;
+            drawBanner(bannerY, BANNER_HEIGHT);
+
+            // Draw title and URL
+            drawTitle(title, websiteUrl, bannerY, BANNER_HEIGHT);
+
+            // Export to preview
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+            preview.src = dataUrl;
+            downloadBtn.href = dataUrl;
+
+            // Auto-trigger SEO Generation for preview
+            generateSEOPreview(title);
+        }
+
+        async function generateSEOPreview(title) {
+            const statusDiv = document.getElementById('postStatus');
+            const seoTitleInput = document.getElementById('seoTitle');
+            const seoDescInput = document.getElementById('seoDescription');
+            const seoHashInput = document.getElementById('seoHashtags');
+
+            statusDiv.style.color = '#4a5568';
+            statusDiv.innerHTML = '🤖 AI is writing SEO content for you...';
+
+            try {
+                const response = await fetch('http://localhost:3000/api/generate-only', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: title,
+                        config: {
+                            openrouter_key: localStorage.getItem('openrouterKey'),
+                            openrouter_model: localStorage.getItem('openrouterModel'),
+                            website_url: document.getElementById('websiteUrl').value
+                        },
+                        language: 'en'
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    seoTitleInput.value = result.seoContent.title;
+                    seoDescInput.value = result.seoContent.description;
+                    seoHashInput.value = result.seoContent.hashtags.join(', ');
+                    statusDiv.innerHTML = '✅ SEO content ready! You can edit it if you want.';
+                    statusDiv.style.color = '#38a169';
+                }
+            } catch (err) {
+                statusDiv.innerHTML = '❌ AI error: ' + err.message;
+                statusDiv.style.color = '#e53e3e';
+            }
+        }
+
+        function loadImage(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const img = new Image();
+                    img.onload = () => resolve(img);
+                    img.onerror = reject;
+                    img.src = e.target.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Post Automatically Logic
+        document.getElementById('postAutoBtn').addEventListener('click', async function () {
+            const btn = this;
+            const statusDiv = document.getElementById('postStatus');
+            const imageData = preview.src;
+
+            // Get EDITED values from the box
+            const title = document.getElementById('seoTitle').value;
+            const description = document.getElementById('seoDescription').value;
+            const hashtags = document.getElementById('seoHashtags').value;
+            const websiteUrl = document.getElementById('websiteUrl').value;
+
+            btn.disabled = true;
+            btn.innerHTML = '⏳ Posting to Pinterest...';
+            statusDiv.style.color = '#4a5568';
+            statusDiv.innerHTML = '📌 Sending to Pinterest...';
+
+            const config = {
+                openrouter_key: localStorage.getItem('openrouterKey'),
+                pinterest_token: localStorage.getItem('pinterestToken'),
+                pinterest_board: localStorage.getItem('pinterestBoard'),
+                openrouter_model: localStorage.getItem('openrouterModel'),
+                pinterest_app_id: localStorage.getItem('pinterestAppId'),
+                pinterest_app_secret: localStorage.getItem('pinterestAppSecret'),
+                website_url: websiteUrl,
+                language: 'en'
+            };
+
+            try {
+                const response = await fetch('http://localhost:3000/api/post-pin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        imageData,
+                        title,
+                        description,
+                        hashtags,
+                        websiteUrl,
+                        config
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    statusDiv.style.color = '#38a169';
+                    statusDiv.innerHTML = `✅ Successfully posted! <a href="${result.pinUrl}" target="_blank" style="color: #3182ce; text-decoration: underline;">View on Pinterest</a>`;
+                    btn.innerHTML = '✅ Posted!';
+                    alert('Success! Your pin is live on Pinterest.');
+                } else {
+                    throw new Error(result.error);
+                }
+            } catch (error) {
+                statusDiv.style.color = '#e53e3e';
+                statusDiv.innerHTML = '❌ Error: ' + error.message;
+                btn.disabled = false;
+                btn.innerHTML = '🚀 Post to Pinterest Now';
+                console.error(error);
+            }
+        });
+
+
+        function drawImageCropped(img, x, y, width, height) {
+            const imgRatio = img.width / img.height;
+            const targetRatio = width / height;
+
+            let sx, sy, sWidth, sHeight;
+
+            if (imgRatio > targetRatio) {
+                // Image is wider - crop sides
+                sHeight = img.height;
+                sWidth = img.height * targetRatio;
+                sx = (img.width - sWidth) / 2;
+                sy = 0;
+            } else {
+                // Image is taller - crop top/bottom
+                sWidth = img.width;
+                sHeight = img.width / targetRatio;
+                sx = 0;
+                sy = (img.height - sHeight) / 2;
+            }
+
+            ctx.drawImage(img, sx, sy, sWidth, sHeight, x, y, width, height);
+        }
+
+        function drawBanner(y, height) {
+            // Main white rectangle
+            ctx.fillStyle = BANNER_COLOR;
+            ctx.fillRect(0, y, CANVAS_WIDTH, height);
+
+            // Add brush-stroke effect on edges
+            ctx.fillStyle = BANNER_COLOR;
+
+            // Top edge
+            for (let x = 0; x < CANVAS_WIDTH; x += 20) {
+                const offset = (hash(x + 1000) % 15) - 7;
+                ctx.beginPath();
+                ctx.arc(x, y + offset, 10, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Bottom edge
+            for (let x = 0; x < CANVAS_WIDTH; x += 20) {
+                const offset = (hash(x + 2000) % 15) - 7;
+                ctx.beginPath();
+                ctx.arc(x, y + height + offset, 10, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        function hash(num) {
+            let x = Math.sin(num) * 10000;
+            return Math.floor((x - Math.floor(x)) * 1000);
+        }
+
+        function drawTitle(text, websiteUrl, bannerY, bannerHeight) {
+            const titleUpper = text.toUpperCase();
+            let fontSize = 90;
+            const maxWidth = CANVAS_WIDTH * 0.85;
+            const hasUrl = websiteUrl && websiteUrl.trim().length > 0;
+
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = TITLE_COLOR;
+
+            // Try to fit text
+            let lines = [titleUpper];
+            let font = `bold ${fontSize}px Impact, Arial Black, sans-serif`;
+            ctx.font = font;
+            let metrics = ctx.measureText(titleUpper);
+
+            // If too wide, split into 2 lines
+            if (metrics.width > maxWidth) {
+                const words = titleUpper.split(' ');
+                if (words.length > 1) {
+                    const mid = Math.ceil(words.length / 2);
+                    lines = [
+                        words.slice(0, mid).join(' '),
+                        words.slice(mid).join(' ')
+                    ];
+                }
+
+                // Reduce font size if still too wide
+                while (fontSize > 40) {
+                    font = `bold ${fontSize}px Impact, Arial Black, sans-serif`;
+                    ctx.font = font;
+
+                    const allFit = lines.every(line => ctx.measureText(line).width <= maxWidth);
+                    if (allFit) break;
+
+                    fontSize -= 5;
+                }
+            }
+
+            // Calculate vertical positioning
+            ctx.font = `bold ${fontSize}px Impact, Arial Black, sans-serif`;
+            const lineHeight = fontSize * 1.2;
+            const urlFontSize = 32;
+            const urlSpace = hasUrl ? urlFontSize + 25 : 0;
+            const totalHeight = lines.length * lineHeight + urlSpace;
+            const centerY = bannerY + bannerHeight / 2;
+            let yPos = centerY - totalHeight / 2 + lineHeight / 2;
+
+            // Draw title lines
+            lines.forEach(line => {
+                // White stroke
+                ctx.strokeStyle = BANNER_COLOR;
+                ctx.lineWidth = 6;
+                ctx.strokeText(line, CANVAS_WIDTH / 2, yPos);
+
+                // Main text
+                ctx.fillStyle = TITLE_COLOR;
+                ctx.fillText(line, CANVAS_WIDTH / 2, yPos);
+
+                yPos += lineHeight;
+            });
+
+            // Draw website URL in orange below the title
+            if (hasUrl) {
+                yPos += 10; // Add spacing between title and URL
+                ctx.font = `bold ${urlFontSize}px Arial, sans-serif`;
+                ctx.fillStyle = URL_COLOR;
+                ctx.fillText(websiteUrl.trim(), CANVAS_WIDTH / 2, yPos);
+            }
+        }
+    </script>
+</body>
+
+</html>
