@@ -80,7 +80,7 @@ Return ONLY valid JSON, no markdown.`;
                 headers: {
                     'Authorization': `Bearer ${config.openrouterApiKey}`,
                     'Content-Type': 'application/json',
-                    'HTTP-Referer': config.websiteUrl,
+                    'HTTP-Referer': config.websiteUrl.startsWith('http') ? config.websiteUrl : `https://${config.websiteUrl}`,
                     'X-Title': 'Pinterest Auto Poster'
                 }
             }
