@@ -572,7 +572,7 @@
             localStorage.setItem('pinterestAppSecret', appSecret);
 
             // Open auth window (Pass secret to server so it can exchange token)
-            const authUrl = `http://localhost:3000/auth/pinterest?client_id=${appId}&client_secret=${appSecret}`;
+            const authUrl = `${window.location.origin}/auth/pinterest?client_id=${appId}&client_secret=${appSecret}`;
             window.open(authUrl, 'Pinterest Auth', 'width=600,height=700');
         };
 
@@ -596,7 +596,7 @@
             if (btn) btn.innerHTML = '⏳...';
 
             try {
-                const response = await fetch(`http://localhost:3000/api/list-boards?token=${token}`);
+                const response = await fetch(`${window.location.origin}/api/list-boards?token=${token}`);
                 const result = await response.json();
 
                 if (result.success && result.boards.length > 0) {
@@ -723,7 +723,7 @@
             statusDiv.innerHTML = '🤖 AI is writing SEO content for you...';
 
             try {
-                const response = await fetch('http://localhost:3000/api/generate-only', {
+                const response = await fetch(`${window.location.origin}/api/generate-only`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -794,7 +794,7 @@
             };
 
             try {
-                const response = await fetch('http://localhost:3000/api/post-pin', {
+                const response = await fetch(`${window.location.origin}/api/post-pin`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({

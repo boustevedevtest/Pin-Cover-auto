@@ -41,8 +41,11 @@ app.get('/auth/pinterest', (req, res) => {
     process.env.TEMP_PINTEREST_ID = client_id;
     process.env.TEMP_PINTEREST_SECRET = client_secret;
 
-    const scopes = 'boards:read,pins:read,pins:write,user_accounts:read';
-    const redirect_uri = `http://localhost:${PORT}/callback`;
+    const protocol = req.headers['x-forwarded-proto'] || 'http';
+    const host = req.headers.host;
+    const redirect_uri = `${protocol}://${host}/callback`;
+
+    const scopes = 'boards:read,boards:write,pins:read,pins:write,user_accounts:read';
     const authUrl = `https://www.pinterest.com/oauth/?client_id=${client_id}&redirect_uri=${encodeURIComponent(redirect_uri)}&response_type=code&scope=${scopes}`;
 
     res.redirect(authUrl);
@@ -60,11 +63,15 @@ app.get('/callback', async (req, res) => {
         console.log('🔄 Exchanging code for token...');
         const auth = Buffer.from(`${client_id}:${client_secret}`).toString('base64');
 
+        const protocol = req.headers['x-forwarded-proto'] || 'http';
+        const host = req.headers.host;
+        const redirect_uri = `${protocol}://${host}/callback`;
+
         const response = await axios.post('https://api.pinterest.com/v5/oauth/token',
             new URLSearchParams({
                 grant_type: 'authorization_code',
                 code: code,
-                redirect_uri: `http://localhost:${PORT}/callback`
+                redirect_uri: redirect_uri
             }),
             {
                 headers: {
@@ -80,7 +87,7 @@ app.get('/callback', async (req, res) => {
         res.send(`
             <html>
             <body style="font-family: sans-serif; text-align: center; padding: 50px;">
-                <h2 style="color: #38a169;">✅ Connexion Pinterest réussie !</h2>
+                <h2 style="color: #38a169;">✅ Pinterest Connection Success!</h2>
                 <script>
                     window.opener.postMessage({ type: 'PINTEREST_TOKEN', token: '${token}' }, '*');
                     setTimeout(() => window.close(), 2000);
@@ -91,7 +98,7 @@ app.get('/callback', async (req, res) => {
     } catch (error) {
         const errorData = error.response?.data || error.message;
         console.error('❌ OAuth Error:', errorData);
-        res.status(500).send(`Erreur Auth: ${JSON.stringify(errorData)}`);
+        res.status(500).send(`Auth Error: ${JSON.stringify(errorData)}`);
     }
 });
 
@@ -138,10 +145,10 @@ app.post('/api/post-pin', async (req, res) => {
             throw new Error('Pinterest Board ID is missing. Please enter it in Settings ⚙️');
         }
 
-        // Save image
+        // Save image (using /tmp for Vercel if needed, but let's see)
         const base64Data = imageData.replace(/^data:image\/jpeg;base64,/, "");
         const timestamp = Date.now();
-        const outputDir = path.join(__dirname, 'output');
+        const outputDir = process.env.VERCEL ? '/tmp' : path.join(__dirname, 'output');
         if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir, { recursive: true });
 
         const imagePath = path.join(outputDir, `pin_${timestamp}.jpg`);
@@ -180,6 +187,7 @@ app.post('/api/post-pin', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`\n✅ Pinterest Bridge Server running at http://localhost:3000`);
-    console.log('👉 Keep this terminal open.');
+    console.log(`\n✅ Pinterest Bridge Server running at http://localhost:${PORT}`);
 });
+
+export default app;
