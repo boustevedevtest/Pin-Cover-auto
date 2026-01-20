@@ -680,8 +680,8 @@
 
         // Pinterest Auth Popup
         document.getElementById('connectPinterest').onclick = () => {
-            const appId = pinterestAppIdInput.value;
-            const appSecret = pinterestAppSecretInput.value;
+            const appId = pinterestAppIdInput.value.trim();
+            const appSecret = pinterestAppSecretInput.value.trim();
 
             if (!appId || !appSecret) {
                 alert('Please enter your App ID and App Secret first!');

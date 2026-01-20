@@ -76,12 +76,15 @@ app.get('/callback', async (req, res) => {
     }
 
     try {
-        console.log('🔄 Exchanging code for token...');
-        const auth = Buffer.from(`${client_id}:${client_secret}`).toString('base64');
-
         const protocol = req.headers['x-forwarded-proto'] || 'http';
         const host = req.headers.host;
         const redirect_uri = `${protocol}://${host}/callback`;
+
+        console.log('🔄 Exchanging code for token...');
+        console.log('   Client ID:', client_id);
+        console.log('   Redirect URI:', redirect_uri);
+
+        const auth = Buffer.from(`${client_id}:${client_secret}`).toString('base64');
 
         const response = await axios.post('https://api.pinterest.com/v5/oauth/token',
             new URLSearchParams({
