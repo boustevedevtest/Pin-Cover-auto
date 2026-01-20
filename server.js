@@ -23,14 +23,15 @@ app.get('/', (req, res) => {
 
 // Helper to update process.env temporarily for a request
 const setupEnv = (data) => {
-    if (data.openrouter_key) process.env.OPENROUTER_API_KEY = data.openrouter_key;
-    if (data.pinterest_token) process.env.PINTEREST_ACCESS_TOKEN = data.pinterest_token;
-    if (data.pinterest_board) process.env.PINTEREST_BOARD_ID = data.pinterest_board;
-    if (data.website_url) process.env.WEBSITE_URL = data.website_url;
-    if (data.openrouter_model) process.env.OPENROUTER_MODEL = data.openrouter_model;
-    if (data.pinterest_app_id) process.env.PINTEREST_APP_ID = data.pinterest_app_id;
-    if (data.pinterest_app_secret) process.env.PINTEREST_APP_SECRET = data.pinterest_app_secret;
-    if (data.pinterest_sandbox !== undefined) process.env.PINTEREST_SANDBOX = data.pinterest_sandbox;
+    if (!data) return;
+    process.env.OPENROUTER_API_KEY = data.openrouter_key || process.env.OPENROUTER_API_KEY || '';
+    process.env.PINTEREST_ACCESS_TOKEN = data.pinterest_token || process.env.PINTEREST_ACCESS_TOKEN || '';
+    process.env.PINTEREST_BOARD_ID = data.pinterest_board || process.env.PINTEREST_BOARD_ID || '';
+    process.env.WEBSITE_URL = data.website_url || process.env.WEBSITE_URL || '';
+    process.env.OPENROUTER_MODEL = data.openrouter_model || process.env.OPENROUTER_MODEL || '';
+    process.env.PINTEREST_APP_ID = data.pinterest_app_id || process.env.PINTEREST_APP_ID || '';
+    process.env.PINTEREST_APP_SECRET = data.pinterest_app_secret || process.env.PINTEREST_APP_SECRET || '';
+    process.env.PINTEREST_SANDBOX = data.pinterest_sandbox === true ? 'true' : 'false';
 };
 
 // --- Pinterest OAuth Flow ---
@@ -197,7 +198,7 @@ app.post('/api/post-pin', async (req, res) => {
         const result = await createPin({
             title: finalTitle,
             description: finalDesc,
-            hashtags: Array.isArray(finalHash) ? finalHash : finalHash.split(',').map(h => h.trim()),
+            hashtags: Array.isArray(finalHash) ? finalHash : (finalHash ? finalHash.split(',').map(h => h.trim()) : []),
             altText: finalAlt,
             imagePath: imagePath,
             link: finalLink
