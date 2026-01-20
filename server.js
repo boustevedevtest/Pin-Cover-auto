@@ -24,6 +24,7 @@ app.get('/', (req, res) => {
 // Helper to update process.env temporarily for a request
 const setupEnv = (data) => {
     if (!data) return;
+    // Only set if not already set, or if data provides a non-empty value
     if (data.openrouter_key) process.env.OPENROUTER_API_KEY = data.openrouter_key;
     if (data.pinterest_token) process.env.PINTEREST_ACCESS_TOKEN = data.pinterest_token;
     if (data.pinterest_board) process.env.PINTEREST_BOARD_ID = data.pinterest_board;
@@ -31,7 +32,8 @@ const setupEnv = (data) => {
     if (data.openrouter_model) process.env.OPENROUTER_MODEL = data.openrouter_model;
     if (data.pinterest_app_id) process.env.PINTEREST_APP_ID = data.pinterest_app_id;
     if (data.pinterest_app_secret) process.env.PINTEREST_APP_SECRET = data.pinterest_app_secret;
-    process.env.PINTEREST_SANDBOX = data.pinterest_sandbox === true ? 'true' : 'false';
+    // Important: ensure sandbox is correctly cast to string
+    process.env.PINTEREST_SANDBOX = String(data.pinterest_sandbox === true);
 };
 
 // --- Pinterest OAuth Flow ---

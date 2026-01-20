@@ -289,10 +289,11 @@ export async function createPin(pinData) {
         console.error('❌ Pinterest API error:', JSON.stringify(errData, null, 2));
 
         if (error.response?.status === 401) {
-            throw new Error('Authentication Failed: Your token is invalid or expired. Please Reconnect to Pinterest in Settings.');
+            const detail = errData.message || JSON.stringify(errData);
+            throw new Error(`Authentication Failed (401): ${detail}. Hint: Ensure your Sandbox toggle matches your App status and RECONNECT.`);
         }
 
-        throw new Error(errData.message || error.message);
+        throw new Error(errData.message || JSON.stringify(errData) || error.message);
     }
 }
 
