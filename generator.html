@@ -715,6 +715,7 @@
 
         async function loadPinterestBoards(token) {
             const btn = document.getElementById('btnLoadBoards');
+            const statusDiv = document.getElementById('authStatus');
             if (btn) btn.innerHTML = '⏳...';
 
             try {
@@ -722,17 +723,38 @@
                 const response = await fetch(`${window.location.origin}/api/list-boards?token=${token}&sandbox=${sandbox}`);
                 const result = await response.json();
 
-                if (result.success && result.boards.length > 0) {
-                    // For now just pick the first one if empty, or show a list
-                    if (!pinterestBoardInput.value) {
-                        pinterestBoardInput.value = result.boards[0].id;
-                        localStorage.setItem('pinterestBoard', result.boards[0].id);
+                if (result.success && result.boards && result.boards.length > 0) {
+                    // Create a small dropdown if multiple boards
+                    let selectHtml = `<select id="boardPicker" style="margin-top:10px; padding:8px; border-radius:8px; width:100%;">`;
+                    result.boards.forEach(b => {
+                        selectHtml += `<option value="${b.id}" ${b.id === pinterestBoardInput.value ? 'selected' : ''}>${b.name}</option>`;
+                    });
+                    selectHtml += `</select>`;
+
+                    if (statusDiv) {
+                        statusDiv.innerHTML = `✅ ${result.boards.length} Boards loaded!<br>` + selectHtml;
+                        statusDiv.style.color = '#38a169';
+
+                        document.getElementById('boardPicker').onchange = (e) => {
+                            pinterestBoardInput.value = e.target.value;
+                            localStorage.setItem('pinterestBoard', e.target.value);
+                        };
+                        // Set first board if empty
+                        if (!pinterestBoardInput.value) {
+                            pinterestBoardInput.value = result.boards[0].id;
+                            localStorage.setItem('pinterestBoard', result.boards[0].id);
+                        }
                     }
-                    console.log('Boards loaded:', result.boards);
                     if (btn) btn.innerHTML = '✅ OK';
+                } else {
+                    throw new Error(result.error?.message || 'No boards found. Ensure you created a board in your ' + (sandbox ? 'Sandbox' : 'Pinterest') + ' account.');
                 }
             } catch (error) {
                 console.error('Error loading boards:', error);
+                if (statusDiv) {
+                    statusDiv.innerHTML = '❌ Error: ' + error.message;
+                    statusDiv.style.color = '#e53e3e';
+                }
                 if (btn) btn.innerHTML = '❌';
             }
         }
