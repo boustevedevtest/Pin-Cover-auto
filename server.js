@@ -36,30 +36,41 @@ const setupEnv = (data) => {
 // --- Pinterest OAuth Flow ---
 
 app.get('/auth/pinterest', (req, res) => {
-    const { client_id, client_secret } = req.query;
-    if (!client_id) return res.status(400).send('Missing App ID');
+    const { client_id, client_secret, sandbox } = req.query;
+    if (!client_id || !client_secret) return res.status(400).send('Missing App ID or Secret');
 
-    process.env.TEMP_PINTEREST_ID = client_id;
-    process.env.TEMP_PINTEREST_SECRET = client_secret;
+    // On Vercel (serverless), process.env is not persistent between requests.
+    // We pass credentials through the 'state' parameter (Base64 encoded)
+    const stateData = Buffer.from(JSON.stringify({
+        client_id,
+        client_secret,
+        sandbox: sandbox === 'true'
+    })).toString('base64');
 
     const protocol = req.headers['x-forwarded-proto'] || 'http';
     const host = req.headers.host;
-    const sandbox = req.query.sandbox === 'true';
-    const redirect_uri = `${protocol}://${host}/callback${sandbox ? '?sandbox=true' : ''}`;
+    const redirect_uri = `${protocol}://${host}/callback${sandbox === 'true' ? '?sandbox=true' : ''}`;
 
     const scopes = 'boards:read,boards:write,pins:read,pins:write,user_accounts:read';
-    const authUrl = `https://www.pinterest.com/oauth/?client_id=${client_id}&redirect_uri=${encodeURIComponent(redirect_uri)}&response_type=code&scope=${scopes}`;
+    const authUrl = `https://www.pinterest.com/oauth/?client_id=${client_id}&redirect_uri=${encodeURIComponent(redirect_uri)}&response_type=code&scope=${scopes}&state=${stateData}`;
 
     res.redirect(authUrl);
 });
 
 app.get('/callback', async (req, res) => {
-    const { code, error } = req.query;
+    const { code, error, state } = req.query;
     if (error) return res.status(400).send(`Pinterest Error: ${error}`);
     if (!code) return res.status(400).send('No code received');
 
-    const client_id = process.env.TEMP_PINTEREST_ID;
-    const client_secret = process.env.TEMP_PINTEREST_SECRET;
+    let client_id, client_secret, sandbox;
+    try {
+        const decodedState = JSON.parse(Buffer.from(state, 'base64').toString());
+        client_id = decodedState.client_id;
+        client_secret = decodedState.client_secret;
+        sandbox = decodedState.sandbox;
+    } catch (e) {
+        return res.status(400).send('Invalid state parameter');
+    }
 
     try {
         console.log('🔄 Exchanging code for token...');
@@ -67,7 +78,6 @@ app.get('/callback', async (req, res) => {
 
         const protocol = req.headers['x-forwarded-proto'] || 'http';
         const host = req.headers.host;
-        const sandbox = req.query.sandbox === 'true';
         const redirect_uri = `${protocol}://${host}/callback${sandbox ? '?sandbox=true' : ''}`;
 
         const response = await axios.post('https://api.pinterest.com/v5/oauth/token',
