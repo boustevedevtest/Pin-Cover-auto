@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Test Pinterest Login</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input {
+            width: 100%;
+            padding: 8px;
+            font-size: 14px;
+        }
+
+        button {
+            background: #e60023;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background: #ad081b;
+        }
+
+        #status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🔐 Test Pinterest OAuth</h1>
+    <p>This page will help diagnose the Pinterest connection issue.</p>
+
+    <div class="form-group">
+        <label>Pinterest App ID:</label>
+        <input type="text" id="appId" placeholder="Your App ID (numbers)">
+    </div>
+
+    <div class="form-group">
+        <label>Pinterest App Secret:</label>
+        <input type="password" id="appSecret" placeholder="Your App Secret">
+    </div>
+
+    <div class="form-group">
+        <label>
+            <input type="checkbox" id="sandbox"> Use Sandbox Mode
+        </label>
+    </div>
+
+    <button onclick="testConnection()">🚀 Test Connection</button>
+
+    <div id="status"></div>
+
+    <script>
+        // Load saved values
+        document.getElementById('appId').value = localStorage.getItem('pinterestAppId') || '';
+        document.getElementById('appSecret').value = localStorage.getItem('pinterestAppSecret') || '';
+        document.getElementById('sandbox').checked = localStorage.getItem('pinterestSandbox') === 'true';
+
+        let popup = null;
+
+        function testConnection() {
+            const appId = document.getElementById('appId').value.trim();
+            const appSecret = document.getElementById('appSecret').value.trim();
+            const sandbox = document.getElementById('sandbox').checked;
+            const status = document.getElementById('status');
+
+            if (!appId || !appSecret) {
+                status.className = 'error';
+                status.innerHTML = '❌ Please enter both App ID and App Secret';
+                return;
+            }
+
+            // Save for future use
+            localStorage.setItem('pinterestAppId', appId);
+            localStorage.setItem('pinterestAppSecret', appSecret);
+            localStorage.setItem('pinterestSandbox', sandbox);
+
+            status.className = 'info';
+            status.innerHTML = `
+                <strong>Step 1:</strong> Opening Pinterest authorization...<br>
+                <small>App ID: ${appId}</small><br>
+                <small>Sandbox: ${sandbox}</small>
+            `;
+
+            // Build auth URL
+            const authUrl = `${window.location.origin}/auth/pinterest?client_id=${encodeURIComponent(appId)}&client_secret=${encodeURIComponent(appSecret)}&sandbox=${sandbox}`;
+
+            console.log('Opening URL:', authUrl);
+
+            // Open popup
+            popup = window.open(authUrl, 'Pinterest Auth', 'width=600,height=700');
+
+            if (!popup) {
+                status.className = 'error';
+                status.innerHTML = '❌ Popup blocked! Please allow popups for this site.';
+            }
+        }
+
+        // Listen for token from popup
+        window.addEventListener('message', (event) => {
+            console.log('Received message:', event.data);
+
+            if (event.data.type === 'PINTEREST_TOKEN') {
+                const status = document.getElementById('status');
+                status.className = 'success';
+                status.innerHTML = `
+                    <strong>✅ Connection Successful!</strong><br>
+                    <small>Token: ${event.data.token.substring(0, 20)}...</small><br>
+                    <small>You can now close the popup and use the main app.</small>
+                `;
+                localStorage.setItem('pinterestToken', event.data.token);
+            }
+        });
+
+        // Check if popup is closed
+        setInterval(() => {
+            if (popup && popup.closed) {
+                const status = document.getElementById('status');
+                if (!localStorage.getItem('pinterestToken') || status.className !== 'success') {
+                    status.className = 'error';
+                    status.innerHTML = '❌ Popup closed without completing authentication. Check the popup for error messages.';
+                }
+                popup = null;
+            }
+        }, 500);
+    </script>
+</body>
+
+</html>
