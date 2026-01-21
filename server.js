@@ -285,16 +285,34 @@ app.post('/api/generate-only', async (req, res) => {
 // Route to post to Pinterest
 app.post('/api/post-pin', async (req, res) => {
     console.log('\n🚀 --- New Post Attempt ---');
+    console.log('📅 Timestamp:', new Date().toISOString());
+
     try {
         const { imageData, title, description, hashtags, altText, websiteUrl, config } = req.body;
+
+        console.log('📦 Received config:', {
+            has_openrouter_key: !!config?.openrouter_key,
+            has_pinterest_token: !!config?.pinterest_token,
+            has_pinterest_board: !!config?.pinterest_board,
+            pinterest_sandbox: config?.pinterest_sandbox,
+            sandbox_type: typeof config?.pinterest_sandbox
+        });
+
         setupEnv(config);
 
+        // Detailed validation
+        console.log('🔍 Environment validation:');
+        console.log('   Token present:', !!process.env.PINTEREST_ACCESS_TOKEN);
+        console.log('   Token length:', process.env.PINTEREST_ACCESS_TOKEN?.length || 0);
+        console.log('   Board ID:', process.env.PINTEREST_BOARD_ID);
+        console.log('   Sandbox mode:', process.env.PINTEREST_SANDBOX);
+
         if (!process.env.PINTEREST_ACCESS_TOKEN || process.env.PINTEREST_ACCESS_TOKEN === 'undefined') {
-            throw new Error('Pinterest Token is missing. Please connect first.');
+            throw new Error('Pinterest Token is missing. Please Reconnect to Pinterest in Settings ⚙️');
         }
 
         if (!config.pinterest_board) {
-            throw new Error('Pinterest Board ID is missing. Please enter it in Settings ⚙️');
+            throw new Error('Pinterest Board ID is missing. Please Load Boards in Settings ⚙️');
         }
 
         // Save image (using /tmp for Vercel if needed, but let's see)
@@ -305,6 +323,7 @@ app.post('/api/post-pin', async (req, res) => {
 
         const imagePath = path.join(outputDir, `pin_${timestamp}.jpg`);
         fs.writeFileSync(imagePath, base64Data, 'base64');
+        console.log('💾 Image saved:', imagePath);
 
         // Use provided content or generate if missing
         let finalTitle = title;
