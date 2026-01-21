@@ -32,8 +32,12 @@ const setupEnv = (data) => {
     if (data.openrouter_model) process.env.OPENROUTER_MODEL = data.openrouter_model;
     if (data.pinterest_app_id) process.env.PINTEREST_APP_ID = data.pinterest_app_id;
     if (data.pinterest_app_secret) process.env.PINTEREST_APP_SECRET = data.pinterest_app_secret;
-    // Important: ensure sandbox is correctly cast to string
-    process.env.PINTEREST_SANDBOX = String(data.pinterest_sandbox === true);
+    // Important: handle both boolean and string values for sandbox
+    const sandboxValue = data.pinterest_sandbox;
+    process.env.PINTEREST_SANDBOX = (sandboxValue === true || sandboxValue === 'true') ? 'true' : 'false';
+
+    console.log('🔧 Environment setup:');
+    console.log('   Sandbox mode:', process.env.PINTEREST_SANDBOX);
 };
 
 // --- Pinterest OAuth Flow ---
