@@ -5,6 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pinterest Poster Generator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Knewave&display=swap" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -416,7 +419,13 @@
             <div class="form-grid">
                 <div class="form-group full-width">
                     <label for="title">Title</label>
-                    <input type="text" id="title" placeholder="Enter your pin title..." required>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="text" id="title" placeholder="Enter your pin title..." required style="flex: 1;">
+                        <div style="text-align: center;">
+                            <input type="color" id="titleColor" value="#4B6F44"
+                                style="width: 50px; height: 50px; padding: 2px; border: 2px solid #e2e8f0; border-radius: 8px; cursor: pointer;">
+                        </div>
+                    </div>
                 </div>
 
                 <div class="form-group full-width">
@@ -613,7 +622,7 @@
         // Design constants
         const CANVAS_WIDTH = 1000;
         const CANVAS_HEIGHT = 1500;
-        const TITLE_COLOR = '#4B6F44';
+        // const TITLE_COLOR = '#4B6F44'; // Dynamic now
         const BANNER_COLOR = '#FFFFFF';
         const BANNER_HEIGHT = 330;
         const URL_COLOR = '#E07B39'; // Orange color for URL
@@ -1041,14 +1050,15 @@
             let fontSize = 90;
             const maxWidth = CANVAS_WIDTH * 0.85;
             const hasUrl = websiteUrl && websiteUrl.trim().length > 0;
+            const userColor = document.getElementById('titleColor').value;
 
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillStyle = TITLE_COLOR;
+            ctx.fillStyle = userColor;
 
             // Try to fit text
             let lines = [titleUpper];
-            let font = `bold ${fontSize}px Impact, Arial Black, sans-serif`;
+            let font = `${fontSize}px 'Knewave', cursive`;
             ctx.font = font;
             let metrics = ctx.measureText(titleUpper);
 
@@ -1065,7 +1075,7 @@
 
                 // Reduce font size if still too wide
                 while (fontSize > 40) {
-                    font = `bold ${fontSize}px Impact, Arial Black, sans-serif`;
+                    font = `${fontSize}px 'Knewave', cursive`;
                     ctx.font = font;
 
                     const allFit = lines.every(line => ctx.measureText(line).width <= maxWidth);
@@ -1076,7 +1086,7 @@
             }
 
             // Calculate vertical positioning
-            ctx.font = `bold ${fontSize}px Impact, Arial Black, sans-serif`;
+            ctx.font = `${fontSize}px 'Knewave', cursive`;
             const lineHeight = fontSize * 1.2;
             const urlFontSize = 32;
             const urlSpace = hasUrl ? urlFontSize + 25 : 0;
@@ -1092,7 +1102,7 @@
                 ctx.strokeText(line, CANVAS_WIDTH / 2, yPos);
 
                 // Main text
-                ctx.fillStyle = TITLE_COLOR;
+                ctx.fillStyle = userColor;
                 ctx.fillText(line, CANVAS_WIDTH / 2, yPos);
 
                 yPos += lineHeight;
